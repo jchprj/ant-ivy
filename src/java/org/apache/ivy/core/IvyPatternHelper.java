@@ -19,7 +19,6 @@ package org.apache.ivy.core;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
@@ -77,8 +76,8 @@ public final class IvyPatternHelper {
 
     public static String substitute(String pattern, ModuleRevisionId moduleRevision,
             String artifact, String type, String ext) {
-        return substitute(pattern, moduleRevision, new DefaultArtifact(moduleRevision, null,
-                artifact, type, ext));
+        return substitute(pattern, moduleRevision,
+            new DefaultArtifact(moduleRevision, null, artifact, type, ext));
     }
 
     public static String substitute(String pattern, Artifact artifact) {
@@ -86,16 +85,15 @@ public final class IvyPatternHelper {
     }
 
     public static String substitute(String pattern, Artifact artifact, ArtifactOrigin origin) {
-        return substitute(pattern, artifact.getModuleRevisionId(), artifact, (String) null, origin);
+        return substitute(pattern, artifact.getModuleRevisionId(), artifact, null, origin);
     }
 
     public static String substitute(String pattern, Artifact artifact, String conf) {
-        return substitute(pattern, artifact.getModuleRevisionId(), artifact, conf,
-            (ArtifactOrigin) null);
+        return substitute(pattern, artifact.getModuleRevisionId(), artifact, conf, null);
     }
 
     public static String substitute(String pattern, ModuleRevisionId mrid, Artifact artifact) {
-        return substitute(pattern, mrid, artifact, (String) null, (ArtifactOrigin) null);
+        return substitute(pattern, mrid, artifact, null, null);
     }
 
     public static String substitute(String pattern, ModuleRevisionId mrid, Artifact artifact,
@@ -105,34 +103,41 @@ public final class IvyPatternHelper {
             origin, mrid.getQualifiedExtraAttributes(), artifact.getQualifiedExtraAttributes());
     }
 
+    public static void main(String[] args) {
+        String a = substitute("resolved-[organisation]-[module]-[revision].xml", "workprj.wolf",
+            "wolf", "1.0", "ivy", "ivy", "xml");
+        System.out.println(a);
+    }
+
     public static String substitute(String pattern, String org, String module, String revision,
             String artifact, String type, String ext) {
-        return substitute(pattern, org, module, (String) null, revision, artifact, type, ext,
-            (String) null, (ArtifactOrigin) null, (Map) null, (Map) null);
+        return substitute(pattern, org, module, null, revision, artifact, type, ext, null, null,
+            null, null);
     }
 
     // CheckStyle:ParameterNumber OFF
     public static String substitute(String pattern, String org, String module, String revision,
             String artifact, String type, String ext, String conf) {
-        return substitute(pattern, org, module, (String) null, revision, artifact, type, ext, conf,
-            (ArtifactOrigin) null, (Map) null, (Map) null);
+        return substitute(pattern, org, module, null, revision, artifact, type, ext, conf, null,
+            null, null);
     }
 
     public static String substitute(String pattern, String org, String module, String revision,
-            String artifact, String type, String ext, String conf, Map extraModuleAttributes,
-            Map extraArtifactAttributes) {
-        return substitute(pattern, org, module, (String) null, revision, artifact, type, ext, conf,
-            (ArtifactOrigin) null, extraModuleAttributes, extraArtifactAttributes);
+            String artifact, String type, String ext, String conf,
+            Map<String, String> extraModuleAttributes,
+            Map<String, String> extraArtifactAttributes) {
+        return substitute(pattern, org, module, null, revision, artifact, type, ext, conf, null,
+            extraModuleAttributes, extraArtifactAttributes);
     }
 
     public static String substitute(String pattern, String org, String module, String branch,
             String revision, String artifact, String type, String ext, String conf,
-            ArtifactOrigin origin, Map extraModuleAttributes, Map extraArtifactAttributes) {
-        Map tokens = new HashMap();
+            ArtifactOrigin origin, Map<String, String> extraModuleAttributes,
+            Map<String, String> extraArtifactAttributes) {
+        Map<String, Object> tokens = new HashMap<>();
         if (extraModuleAttributes != null) {
-            for (Iterator entries = extraModuleAttributes.entrySet().iterator(); entries.hasNext();) {
-                Map.Entry entry = (Map.Entry) entries.next();
-                String token = (String) entry.getKey();
+            for (Map.Entry<String, String> entry : extraModuleAttributes.entrySet()) {
+                String token = entry.getKey();
                 if (token.indexOf(':') > 0) {
                     token = token.substring(token.indexOf(':') + 1);
                 }
@@ -140,10 +145,8 @@ public final class IvyPatternHelper {
             }
         }
         if (extraArtifactAttributes != null) {
-            for (Iterator entries = extraArtifactAttributes.entrySet().iterator(); entries
-                    .hasNext();) {
-                Map.Entry entry = (Map.Entry) entries.next();
-                String token = (String) entry.getKey();
+            for (Map.Entry<String, String> entry : extraArtifactAttributes.entrySet()) {
+                String token = entry.getKey();
                 if (token.indexOf(':') > 0) {
                     token = token.substring(token.indexOf(':') + 1);
                 }
@@ -161,9 +164,8 @@ public final class IvyPatternHelper {
         tokens.put(EXT_KEY, ext == null ? "jar" : ext);
         tokens.put(CONF_KEY, conf == null ? "default" : conf);
         if (origin == null) {
-            tokens.put(ORIGINAL_ARTIFACTNAME_KEY, new OriginalArtifactNameValue(org, module,
-                    branch, revision, artifact, type, ext, extraModuleAttributes,
-                    extraArtifactAttributes));
+            tokens.put(ORIGINAL_ARTIFACTNAME_KEY, new OriginalArtifactNameValue(org, module, branch,
+                    revision, artifact, type, ext, extraModuleAttributes, extraArtifactAttributes));
         } else {
             tokens.put(ORIGINAL_ARTIFACTNAME_KEY, new OriginalArtifactNameValue(origin));
         }
@@ -173,16 +175,17 @@ public final class IvyPatternHelper {
 
     // CheckStyle:ParameterNumber ON
 
-    public static String substituteVariables(String pattern, Map variables) {
-        return substituteVariables(pattern, new IvyVariableContainerImpl(variables), new Stack());
+    public static String substituteVariables(String pattern, Map<String, String> variables) {
+        return substituteVariables(pattern, new IvyVariableContainerImpl(variables),
+            new Stack<String>());
     }
 
     public static String substituteVariables(String pattern, IvyVariableContainer variables) {
-        return substituteVariables(pattern, variables, new Stack());
+        return substituteVariables(pattern, variables, new Stack<String>());
     }
 
     private static String substituteVariables(String pattern, IvyVariableContainer variables,
-            Stack substituting) {
+            Stack<String> substituting) {
         // if you supply null, null is what you get
         if (pattern == null) {
             return null;
@@ -202,10 +205,11 @@ public final class IvyPatternHelper {
             if (val != null) {
                 int index = substituting.indexOf(var);
                 if (index != -1) {
-                    List cycle = new ArrayList(substituting.subList(index, substituting.size()));
+                    List<String> cycle = new ArrayList<>(
+                            substituting.subList(index, substituting.size()));
                     cycle.add(var);
-                    throw new IllegalArgumentException("cyclic variable definition: cycle = "
-                            + cycle);
+                    throw new IllegalArgumentException(
+                            "cyclic variable definition: cycle = " + cycle);
                 }
                 substituting.push(var);
                 val = substituteVariables(val, variables, substituting);
@@ -213,7 +217,8 @@ public final class IvyPatternHelper {
             } else {
                 val = m.group();
             }
-            m.appendReplacement(sb, val.replaceAll("\\\\", "\\\\\\\\").replaceAll("\\$", "\\\\\\$"));
+            m.appendReplacement(sb,
+                val.replaceAll("\\\\", "\\\\\\\\").replaceAll("\\$", "\\\\\\$"));
         }
         if (useVariables) {
             m.appendTail(sb);
@@ -223,9 +228,11 @@ public final class IvyPatternHelper {
         }
     }
 
+    @SuppressWarnings({"rawtypes", "unchecked"})
     public static String substituteTokens(String pattern, Map tokens) {
-        Map tokensCopy = new HashMap(tokens);
-        if (tokensCopy.containsKey(ORGANISATION_KEY) && !tokensCopy.containsKey(ORGANISATION_KEY2)) {
+        Map<String, Object> tokensCopy = new HashMap<>(tokens);
+        if (tokensCopy.containsKey(ORGANISATION_KEY)
+                && !tokensCopy.containsKey(ORGANISATION_KEY2)) {
             tokensCopy.put(ORGANISATION_KEY2, tokensCopy.get(ORGANISATION_KEY));
         }
         if (tokensCopy.containsKey(ORGANISATION_KEY)
@@ -234,7 +241,7 @@ public final class IvyPatternHelper {
             tokensCopy.put(ORGANISATION_PATH_KEY, org == null ? "" : org.replace('.', '/'));
         }
 
-        StringBuffer buffer = new StringBuffer();
+        StringBuilder buffer = new StringBuilder();
 
         char[] chars = pattern.toCharArray();
 
@@ -278,8 +285,8 @@ public final class IvyPatternHelper {
 
                 case '[':
                     if (insideToken) {
-                        throw new IllegalArgumentException("invalid start of token at position "
-                                + i + " in pattern " + pattern);
+                        throw new IllegalArgumentException("invalid start of token at position " + i
+                                + " in pattern " + pattern);
                     }
 
                     tokenBuffer = new StringBuffer();
@@ -288,8 +295,8 @@ public final class IvyPatternHelper {
 
                 case ']':
                     if (!insideToken) {
-                        throw new IllegalArgumentException("invalid end of token at position " + i
-                                + " in pattern " + pattern);
+                        throw new IllegalArgumentException(
+                                "invalid end of token at position " + i + " in pattern " + pattern);
                     }
 
                     String token = tokenBuffer.toString();
@@ -324,13 +331,13 @@ public final class IvyPatternHelper {
         }
 
         if (insideToken) {
-            throw new IllegalArgumentException("last token hasn't been closed in pattern "
-                    + pattern);
+            throw new IllegalArgumentException(
+                    "last token hasn't been closed in pattern " + pattern);
         }
 
         if (insideOptionalPart) {
-            throw new IllegalArgumentException("optional part hasn't been closed in pattern "
-                    + pattern);
+            throw new IllegalArgumentException(
+                    "optional part hasn't been closed in pattern " + pattern);
         }
 
         return buffer.toString();
@@ -368,12 +375,12 @@ public final class IvyPatternHelper {
         return "[" + token + "]";
     }
 
-    public static String substituteParams(String pattern, Map params) {
-        return substituteParams(pattern, new IvyVariableContainerImpl(params), new Stack());
+    public static String substituteParams(String pattern, Map<String, String> params) {
+        return substituteParams(pattern, new IvyVariableContainerImpl(params), new Stack<String>());
     }
 
     private static String substituteParams(String pattern, IvyVariableContainer params,
-            Stack substituting) {
+            Stack<String> substituting) {
         // TODO : refactor this with substituteVariables
         // if you supply null, null is what you get
         if (pattern == null) {
@@ -389,7 +396,8 @@ public final class IvyPatternHelper {
             if (val != null) {
                 int index = substituting.indexOf(var);
                 if (index != -1) {
-                    List cycle = new ArrayList(substituting.subList(index, substituting.size()));
+                    List<String> cycle = new ArrayList<>(
+                            substituting.subList(index, substituting.size()));
                     cycle.add(var);
                     throw new IllegalArgumentException("cyclic param definition: cycle = " + cycle);
                 }
@@ -399,7 +407,8 @@ public final class IvyPatternHelper {
             } else {
                 val = m.group();
             }
-            m.appendReplacement(sb, val.replaceAll("\\\\", "\\\\\\\\").replaceAll("\\@", "\\\\\\@"));
+            m.appendReplacement(sb,
+                val.replaceAll("\\\\", "\\\\\\\\").replaceAll("\\@", "\\\\\\@"));
         }
         m.appendTail(sb);
 
@@ -421,7 +430,7 @@ public final class IvyPatternHelper {
 
         private String revision;
 
-        private Map extraModuleAttributes;
+        private Map<String, String> extraModuleAttributes;
 
         // artifact properties
         private String artifactName;
@@ -430,14 +439,15 @@ public final class IvyPatternHelper {
 
         private String artifactExt;
 
-        private Map extraArtifactAttributes;
+        private Map<String, String> extraArtifactAttributes;
 
         // cached origin;
         private ArtifactOrigin origin;
 
         public OriginalArtifactNameValue(String org, String moduleName, String branch,
                 String revision, String artifactName, String artifactType, String artifactExt,
-                Map extraModuleAttributes, Map extraArtifactAttributes) {
+                Map<String, String> extraModuleAttributes,
+                Map<String, String> extraArtifactAttributes) {
             this.org = org;
             this.moduleName = moduleName;
             this.branch = branch;
@@ -451,6 +461,7 @@ public final class IvyPatternHelper {
 
         /**
          * @param origin
+         *            ArtifactOrigin
          */
         public OriginalArtifactNameValue(ArtifactOrigin origin) {
             this.origin = origin;
@@ -472,8 +483,8 @@ public final class IvyPatternHelper {
                 origin = cacheManager.getSavedArtifactOrigin(artifact);
 
                 if (ArtifactOrigin.isUnknown(origin)) {
-                    Message.debug("no artifact origin found for " + artifact + " in "
-                            + cacheManager);
+                    Message.debug(
+                        "no artifact origin found for " + artifact + " in " + cacheManager);
                     return null;
                 }
             }

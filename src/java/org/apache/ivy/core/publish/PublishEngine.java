@@ -26,7 +26,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -74,9 +73,22 @@ public class PublishEngine {
      * reports. The extra artifacts array can be null (= no extra artifacts), and if non null only
      * the name, type, ext url and extra attributes of the artifacts are really used. Other methods
      * can return null safely.
+     *
+     * @param mrid
+     *            ModuleRevisionId
+     * @param srcArtifactPattern
+     *            a Collection of String
+     * @param resolverName
+     *            String
+     * @param options
+     *            PublishOptions
+     * @return Collection&lt;Artifact&gt;
+     * @throws IOException
+     *             if something goes wrong
      */
-    public Collection publish(ModuleRevisionId mrid, Collection srcArtifactPattern,
-            String resolverName, PublishOptions options) throws IOException {
+    public Collection<Artifact> publish(ModuleRevisionId mrid,
+            Collection<String> srcArtifactPattern, String resolverName, PublishOptions options)
+            throws IOException {
         Message.info(":: publishing :: " + mrid.getModuleId());
         Message.verbose("\tvalidate = " + options.isValidate());
         long start = System.currentTimeMillis();
@@ -111,47 +123,42 @@ public class PublishEngine {
                     tmp.deleteOnExit();
 
                     String[] confs = ConfigurationUtils.replaceWildcards(options.getConfs(), md);
-                    Set confsToRemove = new HashSet(Arrays.asList(md.getConfigurationsNames()));
+                    Set<String> confsToRemove = new HashSet<>(
+                            Arrays.asList(md.getConfigurationsNames()));
                     confsToRemove.removeAll(Arrays.asList(confs));
 
                     try {
-                        XmlModuleDescriptorUpdater.update(
-                            ivyFileURL,
-                            tmp,
-                            new UpdateOptions()
-                                    .setSettings(settings)
-                                    .setStatus(
-                                        options.getStatus() == null ? md.getStatus() : options
-                                                .getStatus())
+                        XmlModuleDescriptorUpdater.update(ivyFileURL, tmp,
+                            new UpdateOptions().setSettings(settings)
+                                    .setStatus(options.getStatus() == null ? md.getStatus()
+                                            : options.getStatus())
                                     .setRevision(options.getPubrevision())
                                     .setBranch(options.getPubBranch())
-                                    .setPubdate(
-                                        options.getPubdate() == null ? new Date() : options
-                                                .getPubdate())
-                                    .setMerge(options.isMerge())
-                                    .setMergedDescriptor(md)
+                                    .setPubdate(options.getPubdate() == null ? new Date()
+                                            : options.getPubdate())
+                                    .setMerge(options.isMerge()).setMergedDescriptor(md)
                                     .setConfsToExclude(
-                                        (String[]) confsToRemove.toArray(new String[confsToRemove
-                                                .size()])));
+                                        confsToRemove.toArray(new String[confsToRemove.size()])));
                         ivyFile = tmp;
                         // we parse the new file to get updated module descriptor
                         md = XmlModuleDescriptorParser.getInstance().parseDescriptor(settings,
                             ivyFile.toURI().toURL(), false);
                         options.setSrcIvyPattern(ivyFile.getAbsolutePath());
                     } catch (SAXException e) {
-                        throw new IllegalStateException("bad ivy file for " + mrid + ": " + ivyFile
-                                + ": " + e);
+                        throw new IllegalStateException(
+                                "bad ivy file for " + mrid + ": " + ivyFile + ": " + e);
                     }
-                } else if (!options.getPubrevision().equals(md.getModuleRevisionId().getRevision())) {
-                    throw new IllegalArgumentException("cannot publish " + ivyFile + " as "
-                            + options.getPubrevision()
-                            + ": bad revision found in ivy file (Revision: "
-                            + md.getModuleRevisionId().getRevision()
-                            + "). Use forcedeliver or update.");
+                } else if (!options.getPubrevision()
+                        .equals(md.getModuleRevisionId().getRevision())) {
+                    throw new IllegalArgumentException(
+                            "cannot publish " + ivyFile + " as " + options.getPubrevision()
+                                    + ": bad revision found in ivy file (Revision: "
+                                    + md.getModuleRevisionId().getRevision()
+                                    + "). Use forcedeliver or update.");
                 }
             } catch (ParseException e) {
-                throw new IllegalStateException("bad ivy file for " + mrid + ": " + ivyFile + ": "
-                        + e);
+                throw new IllegalStateException(
+                        "bad ivy file for " + mrid + ": " + ivyFile + ": " + e);
             }
         } else {
             ResolutionCacheManager cacheManager = settings.getResolutionCacheManager();
@@ -169,52 +176,50 @@ public class PublishEngine {
         }
 
         // collect all declared artifacts of this module
-        Collection missing = publish(md, srcArtifactPattern, resolver, options);
+        Collection<Artifact> missing = publish(md, srcArtifactPattern, resolver, options);
         Message.verbose("\tpublish done (" + (System.currentTimeMillis() - start) + "ms)");
         return missing;
     }
 
-    public Collection publish(ModuleDescriptor md, Collection srcArtifactPattern,
+    public Collection<Artifact> publish(ModuleDescriptor md, Collection<String> srcArtifactPattern,
             DependencyResolver resolver, PublishOptions options) throws IOException {
-        Collection missing = new ArrayList();
-        Set artifactsSet = new LinkedHashSet();
+        Collection<Artifact> missing = new ArrayList<>();
+        Set<Artifact> artifactsSet = new LinkedHashSet<>();
         String[] confs = ConfigurationUtils.replaceWildcards(options.getConfs(), md);
 
-        for (int i = 0; i < confs.length; i++) {
-            Artifact[] artifacts = md.getArtifacts(confs[i]);
-            for (int j = 0; j < artifacts.length; j++) {
-                artifactsSet.add(artifacts[j]);
-            }
+        for (String conf : confs) {
+            Artifact[] artifacts = md.getArtifacts(conf);
+            artifactsSet.addAll(Arrays.asList(artifacts));
         }
         Artifact[] extraArtifacts = options.getExtraArtifacts();
         if (extraArtifacts != null) {
-            for (int i = 0; i < extraArtifacts.length; i++) {
-                artifactsSet.add(new MDArtifact(md, extraArtifacts[i].getName(), extraArtifacts[i]
-                        .getType(), extraArtifacts[i].getExt(), extraArtifacts[i].getUrl(),
-                        extraArtifacts[i].getQualifiedExtraAttributes()));
+            for (Artifact extraArtifact : extraArtifacts) {
+                artifactsSet.add(new MDArtifact(md, extraArtifact.getName(),
+                        extraArtifact.getType(), extraArtifact.getExt(), extraArtifact.getUrl(),
+                        extraArtifact.getQualifiedExtraAttributes()));
             }
         }
         // now collects artifacts files
-        Map/* <Artifact,File> */artifactsFiles = new LinkedHashMap();
-        for (Iterator iter = artifactsSet.iterator(); iter.hasNext();) {
-            Artifact artifact = (Artifact) iter.next();
-            for (Iterator iterator = srcArtifactPattern.iterator(); iterator.hasNext();) {
-                String pattern = (String) iterator.next();
-                File artifactFile = settings.resolveFile(IvyPatternHelper.substitute(
-                    settings.substitute(pattern), artifact));
+        Map<Artifact, File> artifactsFiles = new LinkedHashMap<>();
+        for (Artifact artifact : artifactsSet) {
+            String ppp = "";
+            for (String pattern : srcArtifactPattern) {
+                File artifactFile = settings.resolveFile(
+                    IvyPatternHelper.substitute(settings.substitute(pattern), artifact));
+                ppp += IvyPatternHelper.substitute(settings.substitute(pattern), artifact) + "\n";
                 if (artifactFile.exists()) {
                     artifactsFiles.put(artifact, artifactFile);
                     break;
                 }
             }
             if (!artifactsFiles.containsKey(artifact)) {
-                StringBuffer sb = new StringBuffer();
-                sb.append("missing artifact " + artifact + ":\n");
-                for (Iterator iterator = srcArtifactPattern.iterator(); iterator.hasNext();) {
-                    String pattern = (String) iterator.next();
-                    sb.append("\t"
-                            + settings.resolveFile(IvyPatternHelper.substitute(pattern, artifact))
-                            + " file does not exist\n");
+                StringBuilder sb = new StringBuilder();
+                sb.append("missing artifact ").append(artifact).append(":\n");
+                for (String pattern : srcArtifactPattern) {
+                    sb.append("\t")
+                            .append(settings
+                                    .resolveFile(IvyPatternHelper.substitute(pattern, artifact)))
+                            .append(" file does not exist\n");
                 }
                 if (options.isWarnOnMissing() || options.isHaltOnMissing()) {
                     Message.warn(sb.toString());
@@ -222,15 +227,15 @@ public class PublishEngine {
                     Message.verbose(sb.toString());
                 }
                 if (options.isHaltOnMissing()) {
-                    throw new IOException("missing artifact " + artifact);
+                    throw new IOException("missing artifact " + artifact + "\n" + ppp);
                 }
                 missing.add(artifact);
             }
         }
         if (options.getSrcIvyPattern() != null) {
             Artifact artifact = MDArtifact.newIvyArtifact(md);
-            File artifactFile = settings.resolveFile(IvyPatternHelper.substitute(
-                options.getSrcIvyPattern(), artifact));
+            File artifactFile = settings
+                    .resolveFile(IvyPatternHelper.substitute(options.getSrcIvyPattern(), artifact));
             if (!artifactFile.exists()) {
                 String msg = "missing ivy file for " + md.getModuleRevisionId() + ": \n"
                         + artifactFile + " file does not exist";
@@ -253,10 +258,9 @@ public class PublishEngine {
         try {
             resolver.beginPublishTransaction(md.getModuleRevisionId(), options.isOverwrite());
             // for each declared published artifact in this descriptor, do:
-            for (Iterator iter = artifactsFiles.entrySet().iterator(); iter.hasNext();) {
-                Map.Entry entry = (Entry) iter.next();
-                Artifact artifact = (Artifact) entry.getKey();
-                File artifactFile = (File) entry.getValue();
+            for (Entry<Artifact, File> entry : artifactsFiles.entrySet()) {
+                Artifact artifact = entry.getKey();
+                File artifactFile = entry.getValue();
                 publish(artifact, artifactFile, resolver, options.isOverwrite());
             }
             resolver.commitPublishTransaction();
@@ -269,8 +273,8 @@ public class PublishEngine {
         return missing;
     }
 
-    private void publish(Artifact artifact, File src, DependencyResolver resolver, boolean overwrite)
-            throws IOException {
+    private void publish(Artifact artifact, File src, DependencyResolver resolver,
+            boolean overwrite) throws IOException {
         IvyContext.getContext().checkInterrupted();
         // notify triggers that an artifact is about to be published
         eventManager
@@ -283,8 +287,8 @@ public class PublishEngine {
             }
         } finally {
             // notify triggers that the publish is finished, successfully or not.
-            eventManager.fireIvyEvent(new EndArtifactPublishEvent(resolver, artifact, src,
-                    overwrite, successful));
+            eventManager.fireIvyEvent(
+                new EndArtifactPublishEvent(resolver, artifact, src, overwrite, successful));
         }
     }
 }

@@ -74,6 +74,13 @@ public class DefaultResolutionCacheManager implements ResolutionCacheManager, Iv
     }
 
     public File getResolutionCacheRoot() {
+        if (basedir == null) {
+            if (settings == null) {
+                throw new IllegalStateException(
+                        "The 'basedir' or 'IvySettings' has not been set on the ResolutionCacheManager");
+            }
+            basedir = settings.getDefaultResolutionCacheBasedir();
+        }
         return basedir;
     }
 
@@ -130,7 +137,7 @@ public class DefaultResolutionCacheManager implements ResolutionCacheManager, Iv
         final String suffix = ".xml";
         return getResolutionCacheRoot().listFiles(new FilenameFilter() {
             public boolean accept(File dir, String name) {
-                return (name.startsWith(prefix) && name.endsWith(suffix));
+                return name.startsWith(prefix) && name.endsWith(suffix);
             }
         });
     }
@@ -139,13 +146,14 @@ public class DefaultResolutionCacheManager implements ResolutionCacheManager, Iv
             throws ParseException, IOException {
         File ivyFile = getResolvedIvyFileInCache(mrid);
         if (!ivyFile.exists()) {
-            throw new IllegalStateException("Ivy file not found in cache for " + mrid + "!");
+            throw new IllegalStateException(
+                    "Ivy file not found in cache for " + mrid + "!" + ivyFile.getAbsolutePath());
         }
 
         Properties paths = new Properties();
 
-        File parentsFile = getResolvedIvyPropertiesInCache(ModuleRevisionId.newInstance(mrid,
-            mrid.getRevision() + "-parents"));
+        File parentsFile = getResolvedIvyPropertiesInCache(
+            ModuleRevisionId.newInstance(mrid, mrid.getRevision() + "-parents"));
         if (parentsFile.exists()) {
             FileInputStream in = new FileInputStream(parentsFile);
             paths.load(in);
@@ -160,17 +168,17 @@ public class DefaultResolutionCacheManager implements ResolutionCacheManager, Iv
 
     /**
      * Choose write module descriptor parser for a given moduleDescriptor
-     * 
+     *
      * @param moduleDescriptorFile
      *            a given module descriptor
-     * @return
+     * @return ModuleDescriptorParser
      */
     protected ModuleDescriptorParser getModuleDescriptorParser(File moduleDescriptorFile) {
         return XmlModuleDescriptorParser.getInstance();
     }
 
-    public void saveResolvedModuleDescriptor(ModuleDescriptor md) throws ParseException,
-            IOException {
+    public void saveResolvedModuleDescriptor(ModuleDescriptor md)
+            throws ParseException, IOException {
         ModuleRevisionId mrevId = md.getResolvedModuleRevisionId();
         File ivyFileInCache = getResolvedIvyFileInCache(mrevId);
         md.toIvyFile(ivyFileInCache);
@@ -179,8 +187,8 @@ public class DefaultResolutionCacheManager implements ResolutionCacheManager, Iv
         saveLocalParents(mrevId, md, ivyFileInCache, paths);
 
         if (!paths.isEmpty()) {
-            File parentsFile = getResolvedIvyPropertiesInCache(ModuleRevisionId.newInstance(mrevId,
-                mrevId.getRevision() + "-parents"));
+            File parentsFile = getResolvedIvyPropertiesInCache(
+                ModuleRevisionId.newInstance(mrevId, mrevId.getRevision() + "-parents"));
             FileOutputStream out = new FileOutputStream(parentsFile);
             paths.store(out, null);
             out.close();
@@ -189,22 +197,21 @@ public class DefaultResolutionCacheManager implements ResolutionCacheManager, Iv
 
     private void saveLocalParents(ModuleRevisionId baseMrevId, ModuleDescriptor md, File mdFile,
             Properties paths) throws ParseException, IOException {
-        ExtendsDescriptor[] parents = md.getInheritedDescriptors();
-        for (int i = 0; i < parents.length; i++) {
-            if (!parents[i].isLocal()) {
+        for (ExtendsDescriptor parent : md.getInheritedDescriptors()) {
+            if (!parent.isLocal()) {
                 // we store only local parents in the cache!
                 continue;
             }
 
-            ModuleDescriptor parent = parents[i].getParentMd();
+            ModuleDescriptor parentMd = parent.getParentMd();
             ModuleRevisionId pRevId = ModuleRevisionId.newInstance(baseMrevId,
                 baseMrevId.getRevision() + "-parent." + paths.size());
             File parentFile = getResolvedIvyFileInCache(pRevId);
-            parent.toIvyFile(parentFile);
+            parentMd.toIvyFile(parentFile);
 
-            paths.setProperty(mdFile.getName() + "|" + parents[i].getLocation(),
+            paths.setProperty(mdFile.getName() + "|" + parent.getLocation(),
                 parentFile.getAbsolutePath());
-            saveLocalParents(baseMrevId, parent, parentFile, paths);
+            saveLocalParents(baseMrevId, parentMd, parentFile, paths);
         }
     }
 
@@ -213,16 +220,16 @@ public class DefaultResolutionCacheManager implements ResolutionCacheManager, Iv
     }
 
     public void clean() {
-        FileUtil.forceDelete(getBasedir());
+        FileUtil.forceDelete(getResolutionCacheRoot());
     }
 
     private static class CacheParserSettings implements ParserSettings {
 
         private ParserSettings delegate;
 
-        private Map parentPaths;
+        private Map<Object, Object> parentPaths;
 
-        public CacheParserSettings(ParserSettings delegate, Map parentPaths) {
+        public CacheParserSettings(ParserSettings delegate, Map<Object, Object> parentPaths) {
             this.delegate = delegate;
             this.parentPaths = parentPaths;
         }
@@ -231,7 +238,7 @@ public class DefaultResolutionCacheManager implements ResolutionCacheManager, Iv
             return delegate.substitute(value);
         }
 
-        public Map substitute(Map strings) {
+        public Map<String, String> substitute(Map<String, String> strings) {
             return delegate.substitute(strings);
         }
 
@@ -274,22 +281,26 @@ public class DefaultResolutionCacheManager implements ResolutionCacheManager, Iv
         public Namespace getContextNamespace() {
             return delegate.getContextNamespace();
         }
+
+        public String getVariable(String value) {
+            return delegate.getVariable(value);
+        }
     }
 
-    private static class MapURLResolver extends RelativeUrlResolver {
+    private static final class MapURLResolver extends RelativeUrlResolver {
 
-        private Map paths;
+        private Map<Object, Object> paths;
 
         private RelativeUrlResolver delegate;
 
-        private MapURLResolver(Map paths, RelativeUrlResolver delegate) {
+        private MapURLResolver(Map<Object, Object> paths, RelativeUrlResolver delegate) {
             this.paths = paths;
             this.delegate = delegate;
         }
 
         public URL getURL(URL context, String url) throws MalformedURLException {
             String path = context.getPath();
-            if (path.indexOf('/') >= 0) {
+            if (path.contains("/")) {
                 String file = path.substring(path.lastIndexOf('/') + 1);
 
                 if (paths.containsKey(file + "|" + url)) {
