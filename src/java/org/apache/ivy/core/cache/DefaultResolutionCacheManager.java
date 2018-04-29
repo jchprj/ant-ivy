@@ -36,7 +36,6 @@ import org.apache.ivy.core.module.id.ModuleId;
 import org.apache.ivy.core.module.id.ModuleRevisionId;
 import org.apache.ivy.core.module.status.StatusManager;
 import org.apache.ivy.core.settings.IvySettings;
-import org.apache.ivy.core.settings.TimeoutConstraint;
 import org.apache.ivy.plugins.IvySettingsAware;
 import org.apache.ivy.plugins.conflict.ConflictManager;
 import org.apache.ivy.plugins.matcher.PatternMatcher;
@@ -77,7 +76,8 @@ public class DefaultResolutionCacheManager implements ResolutionCacheManager, Iv
     public File getResolutionCacheRoot() {
         if (basedir == null) {
             if (settings == null) {
-                throw new IllegalStateException("The 'basedir' or 'IvySettings' has not been set on the ResolutionCacheManager");
+                throw new IllegalStateException(
+                        "The 'basedir' or 'IvySettings' has not been set on the ResolutionCacheManager");
             }
             basedir = settings.getDefaultResolutionCacheBasedir();
         }
@@ -146,13 +146,14 @@ public class DefaultResolutionCacheManager implements ResolutionCacheManager, Iv
             throws ParseException, IOException {
         File ivyFile = getResolvedIvyFileInCache(mrid);
         if (!ivyFile.exists()) {
-            throw new IllegalStateException("Ivy file not found in cache for " + mrid + "!");
+            throw new IllegalStateException(
+                    "Ivy file not found in cache for " + mrid + "!" + ivyFile.getAbsolutePath());
         }
 
         Properties paths = new Properties();
 
-        File parentsFile = getResolvedIvyPropertiesInCache(ModuleRevisionId.newInstance(mrid,
-            mrid.getRevision() + "-parents"));
+        File parentsFile = getResolvedIvyPropertiesInCache(
+            ModuleRevisionId.newInstance(mrid, mrid.getRevision() + "-parents"));
         if (parentsFile.exists()) {
             FileInputStream in = new FileInputStream(parentsFile);
             paths.load(in);
@@ -176,8 +177,8 @@ public class DefaultResolutionCacheManager implements ResolutionCacheManager, Iv
         return XmlModuleDescriptorParser.getInstance();
     }
 
-    public void saveResolvedModuleDescriptor(ModuleDescriptor md) throws ParseException,
-            IOException {
+    public void saveResolvedModuleDescriptor(ModuleDescriptor md)
+            throws ParseException, IOException {
         ModuleRevisionId mrevId = md.getResolvedModuleRevisionId();
         File ivyFileInCache = getResolvedIvyFileInCache(mrevId);
         md.toIvyFile(ivyFileInCache);
@@ -186,8 +187,8 @@ public class DefaultResolutionCacheManager implements ResolutionCacheManager, Iv
         saveLocalParents(mrevId, md, ivyFileInCache, paths);
 
         if (!paths.isEmpty()) {
-            File parentsFile = getResolvedIvyPropertiesInCache(ModuleRevisionId.newInstance(mrevId,
-                mrevId.getRevision() + "-parents"));
+            File parentsFile = getResolvedIvyPropertiesInCache(
+                ModuleRevisionId.newInstance(mrevId, mrevId.getRevision() + "-parents"));
             FileOutputStream out = new FileOutputStream(parentsFile);
             paths.store(out, null);
             out.close();
@@ -283,11 +284,6 @@ public class DefaultResolutionCacheManager implements ResolutionCacheManager, Iv
 
         public String getVariable(String value) {
             return delegate.getVariable(value);
-        }
-
-        @Override
-        public TimeoutConstraint getTimeoutConstraint(final String name) {
-            return this.delegate.getTimeoutConstraint(name);
         }
     }
 
