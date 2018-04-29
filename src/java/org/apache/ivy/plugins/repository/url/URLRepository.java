@@ -28,7 +28,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.ivy.core.settings.TimeoutConstraint;
 import org.apache.ivy.plugins.repository.AbstractRepository;
 import org.apache.ivy.plugins.repository.RepositoryCopyProgressListener;
 import org.apache.ivy.plugins.repository.Resource;
@@ -41,17 +40,10 @@ public class URLRepository extends AbstractRepository {
 
     private final Map<String, Resource> resourcesCache = new HashMap<>();
 
-    public URLRepository() {
-    }
-
-    public URLRepository(final TimeoutConstraint timeoutConstraint) {
-        super(timeoutConstraint);
-    }
-
     public Resource getResource(String source) throws IOException {
         Resource res = resourcesCache.get(source);
         if (res == null) {
-            res = new URLResource(new URL(source), this.getTimeoutConstraint());
+            res = new URLResource(new URL(source));
             resourcesCache.put(source, res);
         }
         return res;
@@ -65,7 +57,7 @@ public class URLRepository extends AbstractRepository {
             if (totalLength > 0) {
                 progress.setTotalLength(totalLength);
             }
-            FileUtil.copy(new URL(source), destination, progress, getTimeoutConstraint());
+            FileUtil.copy(new URL(source), destination, progress);
         } catch (IOException | RuntimeException ex) {
             fireTransferError(ex);
             throw ex;
@@ -85,7 +77,7 @@ public class URLRepository extends AbstractRepository {
             if (totalLength > 0) {
                 progress.setTotalLength(totalLength);
             }
-            FileUtil.copy(source, new URL(destination), progress, getTimeoutConstraint());
+            FileUtil.copy(source, new URL(destination), progress);
         } catch (IOException | RuntimeException ex) {
             fireTransferError(ex);
             throw ex;

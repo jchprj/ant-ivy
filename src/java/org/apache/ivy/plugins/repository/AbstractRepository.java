@@ -24,7 +24,6 @@ import java.util.Arrays;
 import javax.swing.event.EventListenerList;
 
 import org.apache.ivy.core.module.descriptor.Artifact;
-import org.apache.ivy.core.settings.TimeoutConstraint;
 
 public abstract class AbstractRepository implements Repository {
     private EventListenerList listeners = new EventListenerList();
@@ -32,16 +31,6 @@ public abstract class AbstractRepository implements Repository {
     private String name;
 
     private TransferEvent evt;
-
-    private final TimeoutConstraint timeoutConstraint;
-
-    public AbstractRepository() {
-        this(null);
-    }
-
-    protected AbstractRepository(final TimeoutConstraint timeoutConstraint) {
-        this.timeoutConstraint = timeoutConstraint;
-    }
 
     public void addTransferListener(TransferListener listener) {
         listeners.add(TransferListener.class, listener);
@@ -130,10 +119,6 @@ public abstract class AbstractRepository implements Repository {
 
     public void setName(String name) {
         this.name = name;
-    }
-
-    public TimeoutConstraint getTimeoutConstraint() {
-        return this.timeoutConstraint;
     }
 
     @Override

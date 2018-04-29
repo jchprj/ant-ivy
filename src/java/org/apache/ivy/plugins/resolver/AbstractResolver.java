@@ -54,7 +54,6 @@ import org.apache.ivy.core.resolve.ResolvedModuleRevision;
 import org.apache.ivy.core.search.ModuleEntry;
 import org.apache.ivy.core.search.OrganisationEntry;
 import org.apache.ivy.core.search.RevisionEntry;
-import org.apache.ivy.core.settings.TimeoutConstraint;
 import org.apache.ivy.core.settings.Validatable;
 import org.apache.ivy.plugins.conflict.ConflictManager;
 import org.apache.ivy.plugins.latest.ArtifactInfo;
@@ -111,9 +110,6 @@ public abstract class AbstractResolver implements DependencyResolver, HasLatestS
     private String changingPattern;
 
     private Boolean checkmodified;
-
-    private String timeoutConstraintName;
-    private TimeoutConstraint timeoutConstraint;
 
     public ResolverSettings getSettings() {
         return settings;
@@ -207,14 +203,6 @@ public abstract class AbstractResolver implements DependencyResolver, HasLatestS
 
     public String getTypeName() {
         return getClass().getName();
-    }
-
-    public TimeoutConstraint getTimeoutConstraint() {
-        return this.timeoutConstraint;
-    }
-
-    public void setTimeoutConstraint(final String name) {
-        this.timeoutConstraintName = name;
     }
 
     /**
@@ -424,17 +412,6 @@ public abstract class AbstractResolver implements DependencyResolver, HasLatestS
         }
     }
 
-    private void initTimeoutConstraintFromSettings() {
-        if (this.timeoutConstraintName == null) {
-            return;
-        }
-        this.timeoutConstraint = settings.getTimeoutConstraint(this.timeoutConstraintName);
-        if (this.timeoutConstraint == null) {
-            throw new IllegalStateException("Unknown timeout constraint '" + this.timeoutConstraintName + "' " +
-                    "on resolver '" + this.name + "'");
-        }
-    }
-
     public void setRepositoryCacheManager(RepositoryCacheManager repositoryCacheManager) {
         this.cacheManagerName = repositoryCacheManager.getName();
         this.repositoryCacheManager = repositoryCacheManager;
@@ -452,12 +429,10 @@ public abstract class AbstractResolver implements DependencyResolver, HasLatestS
         return eventManager;
     }
 
-    @Override
     public void validate() {
         initRepositoryCacheManagerFromSettings();
         initNamespaceFromSettings();
         initLatestStrategyFromSettings();
-        initTimeoutConstraintFromSettings();
     }
 
     protected CacheMetadataOptions getCacheOptions(ResolveData data) {
@@ -642,9 +617,5 @@ public abstract class AbstractResolver implements DependencyResolver, HasLatestS
             return AbstractResolver.this.getSettings().getVariable(value);
         }
 
-        @Override
-        public TimeoutConstraint getTimeoutConstraint(final String name) {
-            return AbstractResolver.this.getSettings().getTimeoutConstraint(name);
-        }
     }
 }

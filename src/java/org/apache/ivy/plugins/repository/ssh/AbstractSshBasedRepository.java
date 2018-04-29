@@ -25,7 +25,6 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
-import org.apache.ivy.core.settings.TimeoutConstraint;
 import org.apache.ivy.plugins.repository.AbstractRepository;
 import org.apache.ivy.util.Credentials;
 import org.apache.ivy.util.CredentialsUtil;
@@ -58,10 +57,6 @@ public abstract class AbstractSshBasedRepository extends AbstractRepository {
 
     public AbstractSshBasedRepository() {
         super();
-    }
-
-    public AbstractSshBasedRepository(final TimeoutConstraint timeoutConstraint) {
-        super(timeoutConstraint);
     }
 
     /**

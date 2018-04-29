@@ -24,7 +24,6 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.ivy.core.settings.TimeoutConstraint;
 import org.apache.ivy.plugins.repository.Resource;
 import org.apache.ivy.plugins.repository.url.URLRepository;
 import org.apache.ivy.plugins.repository.url.URLResource;
@@ -38,21 +37,10 @@ public class RelativeURLRepository extends URLRepository {
         baseUrl = null;
     }
 
-    /**
-     *
-     * @param baseUrl
-     * @deprecated Since 2.5. Use {@link #RelativeURLRepository(URL, TimeoutConstraint)} instead
-     */
-    @Deprecated
     public RelativeURLRepository(URL baseUrl) {
-        this(baseUrl, null);
-    }
-
-    public RelativeURLRepository(final URL baseUrl, final TimeoutConstraint timeoutConstraint) {
-        super(timeoutConstraint);
+        super();
         this.baseUrl = baseUrl;
     }
-
 
     private Map<String, Resource> resourcesCache = new HashMap<>();
 
@@ -68,9 +56,9 @@ public class RelativeURLRepository extends URLRepository {
                 uri = null;
             }
             if (uri == null || uri.isAbsolute()) {
-                res = new URLResource(new URL(source), getTimeoutConstraint());
+                res = new URLResource(new URL(source));
             } else {
-                res = new URLResource(new URL(baseUrl + source), getTimeoutConstraint());
+                res = new URLResource(new URL(baseUrl + source));
             }
             resourcesCache.put(source, res);
         }

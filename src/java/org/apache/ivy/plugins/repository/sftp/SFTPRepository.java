@@ -26,7 +26,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import org.apache.ivy.core.settings.TimeoutConstraint;
 import org.apache.ivy.plugins.repository.BasicResource;
 import org.apache.ivy.plugins.repository.Resource;
 import org.apache.ivy.plugins.repository.TransferEvent;
@@ -71,10 +70,6 @@ public class SFTPRepository extends AbstractSshBasedRepository {
     }
 
     public SFTPRepository() {
-    }
-
-    public SFTPRepository(final TimeoutConstraint timeoutConstraint) {
-        super(timeoutConstraint);
     }
 
     public Resource getResource(String source) {

@@ -17,11 +17,6 @@
  */
 package org.apache.ivy.util.url;
 
-import org.apache.ivy.core.settings.TimeoutConstraint;
-import org.apache.ivy.util.CopyProgressListener;
-import org.apache.ivy.util.FileUtil;
-import org.apache.ivy.util.Message;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -33,6 +28,10 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.UnknownHostException;
+
+import org.apache.ivy.util.CopyProgressListener;
+import org.apache.ivy.util.FileUtil;
+import org.apache.ivy.util.Message;
 
 /**
  *
@@ -50,37 +49,28 @@ public class BasicURLHandler extends AbstractURLHandler {
         }
     }
 
-    @Override
-    public URLInfo getURLInfo(final URL url) {
-        return this.getURLInfo(url, null);
+    public URLInfo getURLInfo(URL url) {
+        return getURLInfo(url, 0);
     }
 
-    @Override
-    public URLInfo getURLInfo(final URL url, final int timeout) {
-        return this.getURLInfo(url, createTimeoutConstraints(timeout));
-    }
-
-    @Override
-    public URLInfo getURLInfo(final URL url, final TimeoutConstraint timeoutConstraint) {
+    public URLInfo getURLInfo(URL url, int timeout) {
         // Install the IvyAuthenticator
         if ("http".equals(url.getProtocol()) || "https".equals(url.getProtocol())) {
             IvyAuthenticator.install();
         }
-        final int connectionTimeout = (timeoutConstraint == null || timeoutConstraint.getConnectionTimeout() < 0) ? 0 : timeoutConstraint.getConnectionTimeout();
-        final int readTimeout = (timeoutConstraint == null || timeoutConstraint.getReadTimeout() < 0) ? 0 : timeoutConstraint.getReadTimeout();
+
         URLConnection con = null;
         try {
-            final URL normalizedURL = normalizeToURL(url);
-            con = normalizedURL.openConnection();
-            con.setConnectTimeout(connectionTimeout);
-            con.setReadTimeout(readTimeout);
+            url = normalizeToURL(url);
+            con = url.openConnection();
+            con.setConnectTimeout(timeout);
             con.setRequestProperty("User-Agent", getUserAgent());
             if (con instanceof HttpURLConnection) {
                 HttpURLConnection httpCon = (HttpURLConnection) con;
                 if (getRequestMethod() == URLHandler.REQUEST_METHOD_HEAD) {
                     httpCon.setRequestMethod("HEAD");
                 }
-                if (checkStatusCode(normalizedURL, httpCon)) {
+                if (checkStatusCode(url, httpCon)) {
                     String bodyCharset = getCharSetFromContentType(con.getContentType());
                     return new URLInfo(true, httpCon.getContentLength(), con.getLastModified(),
                             bodyCharset);
@@ -111,7 +101,8 @@ public class BasicURLHandler extends AbstractURLHandler {
      * Extract the charset from the Content-Type header string, or default to ISO-8859-1 as per
      * rfc2616-sec3.html#sec3.7.1 .
      *
-     * @param contentType the Content-Type header string
+     * @param contentType
+     *            the Content-Type header string
      * @return the charset as specified in the content type, or ISO-8859-1 if unspecified.
      */
     public static String getCharSetFromContentType(String contentType) {
@@ -157,37 +148,27 @@ public class BasicURLHandler extends AbstractURLHandler {
         return false;
     }
 
-    @Override
-    public InputStream openStream(final URL url) throws IOException {
-        return this.openStream(url, null);
-    }
-
-    @Override
-    public InputStream openStream(final URL url, final TimeoutConstraint timeoutConstraint) throws IOException {
+    public InputStream openStream(URL url) throws IOException {
         // Install the IvyAuthenticator
         if ("http".equals(url.getProtocol()) || "https".equals(url.getProtocol())) {
             IvyAuthenticator.install();
         }
-        final int connectionTimeout = (timeoutConstraint == null || timeoutConstraint.getConnectionTimeout() < 0) ? 0 : timeoutConstraint.getConnectionTimeout();
-        final int readTimeout = (timeoutConstraint == null || timeoutConstraint.getReadTimeout() < 0) ? 0 : timeoutConstraint.getReadTimeout();
 
         URLConnection conn = null;
         try {
-            final URL normalizedURL = normalizeToURL(url);
-            conn = normalizedURL.openConnection();
-            conn.setConnectTimeout(connectionTimeout);
-            conn.setReadTimeout(readTimeout);
+            url = normalizeToURL(url);
+            conn = url.openConnection();
             conn.setRequestProperty("User-Agent", getUserAgent());
             conn.setRequestProperty("Accept-Encoding", "gzip,deflate");
             if (conn instanceof HttpURLConnection) {
                 HttpURLConnection httpCon = (HttpURLConnection) conn;
-                if (!checkStatusCode(normalizedURL, httpCon)) {
-                    throw new IOException("The HTTP response code for " + normalizedURL
+                if (!checkStatusCode(url, httpCon)) {
+                    throw new IOException("The HTTP response code for " + url
                             + " did not indicate a success." + " See log for more detail.");
                 }
             }
             InputStream inStream = getDecodingInputStream(conn.getContentEncoding(),
-                    conn.getInputStream());
+                conn.getInputStream());
             ByteArrayOutputStream outStream = new ByteArrayOutputStream();
 
             byte[] buffer = new byte[BUFFER_SIZE];
@@ -201,42 +182,30 @@ public class BasicURLHandler extends AbstractURLHandler {
         }
     }
 
-    @Override
-    public void download(final URL src, final File dest, final CopyProgressListener l) throws IOException {
-        this.download(src, dest, l, null);
-    }
-
-    @Override
-    public void download(final URL src, final File dest, final CopyProgressListener listener,
-                         final TimeoutConstraint timeoutConstraint) throws IOException {
-
+    public void download(URL src, File dest, CopyProgressListener l) throws IOException {
         // Install the IvyAuthenticator
         if ("http".equals(src.getProtocol()) || "https".equals(src.getProtocol())) {
             IvyAuthenticator.install();
         }
-        final int connectionTimeout = (timeoutConstraint == null || timeoutConstraint.getConnectionTimeout() < 0) ? 0 : timeoutConstraint.getConnectionTimeout();
-        final int readTimeout = (timeoutConstraint == null || timeoutConstraint.getReadTimeout() < 0) ? 0 : timeoutConstraint.getReadTimeout();
 
         URLConnection srcConn = null;
         try {
-            final URL normalizedURL = normalizeToURL(src);
-            srcConn = normalizedURL.openConnection();
-            srcConn.setConnectTimeout(connectionTimeout);
-            srcConn.setReadTimeout(readTimeout);
+            src = normalizeToURL(src);
+            srcConn = src.openConnection();
             srcConn.setRequestProperty("User-Agent", getUserAgent());
             srcConn.setRequestProperty("Accept-Encoding", "gzip,deflate");
             if (srcConn instanceof HttpURLConnection) {
                 HttpURLConnection httpCon = (HttpURLConnection) srcConn;
-                if (!checkStatusCode(normalizedURL, httpCon)) {
-                    throw new IOException("The HTTP response code for " + normalizedURL
+                if (!checkStatusCode(src, httpCon)) {
+                    throw new IOException("The HTTP response code for " + src
                             + " did not indicate a success." + " See log for more detail.");
                 }
             }
 
             // do the download
             InputStream inStream = getDecodingInputStream(srcConn.getContentEncoding(),
-                    srcConn.getInputStream());
-            FileUtil.copy(inStream, dest, listener);
+                srcConn.getInputStream());
+            FileUtil.copy(inStream, dest, l);
 
             // check content length only if content was not encoded
             if (srcConn.getContentEncoding() == null) {
@@ -244,7 +213,7 @@ public class BasicURLHandler extends AbstractURLHandler {
                 if (contentLength != -1 && dest.length() != contentLength) {
                     dest.delete();
                     throw new IOException(
-                            "Downloaded file size doesn't match expected Content Length for " + normalizedURL
+                            "Downloaded file size doesn't match expected Content Length for " + src
                                     + ". Please retry.");
                 }
             }
@@ -259,15 +228,7 @@ public class BasicURLHandler extends AbstractURLHandler {
         }
     }
 
-    @Override
-    public void upload(final File source, final URL dest, final CopyProgressListener l) throws IOException {
-        this.upload(source, dest, l);
-    }
-
-    @Override
-    public void upload(final File src, final URL dest, final CopyProgressListener listener,
-                       final TimeoutConstraint timeoutConstraint) throws IOException {
-
+    public void upload(File source, URL dest, CopyProgressListener l) throws IOException {
         if (!"http".equals(dest.getProtocol()) && !"https".equals(dest.getProtocol())) {
             throw new UnsupportedOperationException(
                     "URL repository only support HTTP PUT at the moment");
@@ -276,28 +237,32 @@ public class BasicURLHandler extends AbstractURLHandler {
         // Install the IvyAuthenticator
         IvyAuthenticator.install();
 
-        final int connectionTimeout = (timeoutConstraint == null || timeoutConstraint.getConnectionTimeout() < 0) ? 0 : timeoutConstraint.getConnectionTimeout();
         HttpURLConnection conn = null;
         try {
-            final URL normalizedDestURL = normalizeToURL(dest);
-            conn = (HttpURLConnection) normalizedDestURL.openConnection();
+            dest = normalizeToURL(dest);
+            conn = (HttpURLConnection) dest.openConnection();
             conn.setDoOutput(true);
-            conn.setConnectTimeout(connectionTimeout);
             conn.setRequestMethod("PUT");
             conn.setRequestProperty("User-Agent", getUserAgent());
             conn.setRequestProperty("Content-type", "application/octet-stream");
-            conn.setRequestProperty("Content-length", Long.toString(src.length()));
+            conn.setRequestProperty("Content-length", Long.toString(source.length()));
             conn.setInstanceFollowRedirects(true);
 
-            try (final InputStream in = new FileInputStream(src);) {
-                final OutputStream os = conn.getOutputStream();
-                FileUtil.copy(in, os, listener);
+            InputStream in = new FileInputStream(source);
+            try {
+                OutputStream os = conn.getOutputStream();
+                FileUtil.copy(in, os, l);
+            } finally {
+                try {
+                    in.close();
+                } catch (IOException e) {
+                    /* ignored */
+                }
             }
-            validatePutStatusCode(normalizedDestURL, conn.getResponseCode(), conn.getResponseMessage());
+            validatePutStatusCode(dest, conn.getResponseCode(), conn.getResponseMessage());
         } finally {
             disconnect(conn);
         }
-
     }
 
     private void disconnect(URLConnection con) {

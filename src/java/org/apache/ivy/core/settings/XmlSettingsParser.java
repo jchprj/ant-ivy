@@ -105,7 +105,7 @@ public class XmlSettingsParser extends DefaultHandler {
 
     private List<String> configuratorTags = Arrays.asList("resolvers", "namespaces", "parsers",
         "latest-strategies", "conflict-managers", "outputters", "version-matchers", "statuses",
-        "circular-dependency-strategies", "triggers", "lock-strategies", "caches", "signers", "timeout-constraints");
+        "circular-dependency-strategies", "triggers", "lock-strategies", "caches", "signers");
 
     private IvySettings ivy;
 
@@ -180,7 +180,6 @@ public class XmlSettingsParser extends DefaultHandler {
         doParse(configuration);
     }
 
-    @Override
     public void startElement(String uri, String localName, String qName, Attributes att)
             throws SAXException {
         // we first copy attributes in a Map to be able to modify them
@@ -597,7 +596,6 @@ public class XmlSettingsParser extends DefaultHandler {
         }
     }
 
-    @Override
     public void endElement(String uri, String localName, String qName) throws SAXException {
         if (configurator.getCurrent() != null) {
             if (configuratorTags.contains(qName) && configurator.getDepth() == 1) {
@@ -612,7 +610,6 @@ public class XmlSettingsParser extends DefaultHandler {
         }
     }
 
-    @Override
     public void endDocument() throws SAXException {
         if (defaultResolver != null) {
             ivy.setDefaultResolver(ivy.substitute(defaultResolver));

@@ -28,7 +28,7 @@ import org.apache.ivy.plugins.repository.sftp.SFTPRepository;
 public class SFTPResolver extends AbstractSshBasedResolver {
 
     public SFTPResolver() {
-        setRepository(new SFTPRepository(new LazyTimeoutConstraint(this)));
+        setRepository(new SFTPRepository());
     }
 
     @Override

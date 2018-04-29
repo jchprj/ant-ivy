@@ -67,7 +67,7 @@ public class MirroredURLResolver extends RepositoryResolver {
                         + ", an incorrect url has been found and will then not be used: " + baseUrl);
             }
             if (url != null) {
-                final RelativeURLRepository repo = new RelativeURLRepository(url, this.getTimeoutConstraint());
+                RelativeURLRepository repo = new RelativeURLRepository(url);
                 repositories.add(repo);
             }
         }
@@ -75,11 +75,11 @@ public class MirroredURLResolver extends RepositoryResolver {
     }
 
     private File downloadMirrorList() {
-        final URLRepository urlRepository = new URLRepository(this.getTimeoutConstraint());
+        URLRepository urlRepository = new URLRepository();
         if (getEventManager() != null) {
             urlRepository.addTransferListener(getEventManager());
         }
-        final URLResource mirrorResource = new URLResource(mirrorListUrl, this.getTimeoutConstraint());
+        URLResource mirrorResource = new URLResource(mirrorListUrl);
         CacheResourceOptions options = new CacheResourceOptions();
         ArtifactDownloadReport report = getRepositoryCacheManager().downloadRepositoryResource(
             mirrorResource, "mirrorlist", "text", "txt", options, urlRepository);
